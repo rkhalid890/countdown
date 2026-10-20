@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Countdown</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; color: #f22; font-family: monospace; }
+  body { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2.5vw; }
+  #display { display: flex; align-items: center; gap: 1.2vw; }
+  .group { display: flex; gap: .6vw; }
+  .digit { width: 7vw; height: 12vw; }
+  .digit .seg { fill: #2a0000; }
+  .digit .seg.on { fill: #ff1a1a; filter: drop-shadow(0 0 2px rgba(255,0,0,.5)); }
+  .sep { width: 2vw; height: 12vw; }
+  .sep line { stroke: #ff1a1a; stroke-width: 14;   stroke-linecap: round; filter: drop-shadow(0 0 2px rgba(255,0,0,.5)); }
+    .col { display: flex; flex-direction: column; align-items: center; gap: 1vw; }
+    .label { font-size: 1.4vw; letter-spacing: .3em; margin-right: -.3em; color: #800; }
+    #display { align-items: flex-start; }
+    .sep { margin-top: 0; }
+    #controls.hidden { display: none; }
+  #controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  input, button { background: #100; color: #f44; border: 1px solid #700; padding: 8px 12px; font: inherit; font-size: 16px; border-radius: 4px; color-scheme: dark; }
+  button { cursor: pointer; }
+  button:hover { background: #300; }
+  #msg { height: 1.5em; color: #f55; }
+</style>
+</head>
+<body>
+  <div id="display"></div>
+  <div id="controls">
+    <input type="datetime-local" id="target" step="1">
+    <button id="start">Set / Start</button>
+    <button id="reset">Clear</button>
+  </div>
+  <div id="msg"></div>
+
+<script>
+const NS = 'http://www.w3.org/2000/svg';
+// segments a,b,c,d,e,f,g as polygons in a 70x120 viewBox
+const SEGS = {
+  a: '12,6 58,6 52,16 18,16', g: '12,60 18,50 52,50 58,60 52,70 18,70', d: '12,114 18,104 52,104 58,114',
+  f: '8,10 16,20 16,50 8,58 4,54 4,14', b: '62,10 66,14 66,54 62,58 54,50 54,20',
+  e: '8,62 16,70 16,100 8,110 4,106 4,66', c: '62,62 66,66 66,106 62,110 54,100 54,70'
+};
+const MAP = ['abcdef','bc','abdeg','abcdg','bcfg','acdfg','acdefg','abc','abcdefg','abcdfg'];
+
+function makeDigit() {
+  const s = document.createElementNS(NS, 'svg');
+  s.setAttribute('viewBox', '0 0 70 120');
+  s.classList.add('digit');
+  s.segs = {};
+  for (const k in SEGS) {
+    const p = document.createElementNS(NS, 'polygon');
+    p.setAttribute('points', SEGS[k]);
+    p.classList.add('seg');
+    s.appendChild(p);
+    s.segs[k] = p;
+  }
+  s.show = n => { for (const k in s.segs) s.segs[k].classList.toggle('on', MAP[n].includes(k)); };
+  return s;
+}
+function makeSep() {
+  const s = document.createElementNS(NS, 'svg');
+  s.setAttribute('viewBox', '0 0 20 120');
+  s.classList.add('sep');
+  const l = document.createElementNS(NS, 'line');
+  l.setAttribute('x1', 17); l.setAttribute('y1', 112); l.setAttribute('x2', 3); l.setAttribute('y2', 8);
+  s.appendChild(l);
+  return s;
+}
+
+const disp = document.getElementById('display');
+const digits = [];
+['DAYS','HOURS','MINUTES','SECONDS'].forEach((name, i) => {
+  if (i) disp.appendChild(makeSep());
+  const col = document.createElement('div'); col.className = 'col';
+  const g = document.createElement('div'); g.className = 'group';
+  for (let j = 0; j < 2; j++) { const d = makeDigit(); digits.push(d); g.appendChild(d); }
+  const l = document.createElement('div'); l.className = 'label'; l.textContent = name;
+  col.append(g, l);
+  disp.appendChild(col);
+});
+const controls = document.getElementById('controls');
+let paused = false, remaining = 0;
+document.addEventListener('keydown', e => {
+  if (e.code !== 'Space') return;
+  e.preventDefault();
+  if (e.repeat) return;
+  if (document.activeElement) document.activeElement.blur();
+  if (!paused && timer) {
+    remaining = target - Date.now();
+    clearInterval(timer); timer = null; paused = true;
+    msg.textContent = 'Paused';
+    controls.classList.remove('hidden');
+  } else if (paused) {
+    paused = false;
+    target = Date.now() + remaining;
+    msg.textContent = '';
+    controls.classList.add('hidden');
+    tick();
+    timer = setInterval(tick, 250);
+  }
+});
+
+const input = document.getElementById('target');
+const msg = document.getElementById('msg');
+let target = null, timer = null;
+
+function render(ms) {
+  let t = Math.max(0, Math.floor(ms / 1000));
+  const d = Math.floor(t / 86400); t %= 86400;
+  const h = Math.floor(t / 3600); t %= 3600;
+  const m = Math.floor(t / 60), s = t % 60;
+  const str = String(Math.min(d, 99)).padStart(2, '0') + String(h).padStart(2, '0') +
+              String(m).padStart(2, '0') + String(s).padStart(2, '0');
+  digits.forEach((dg, i) => dg.show(+str[i]));
+}
+function tick() {
+  const left = target - Date.now();
+  render(left);
+  if (left <= 0) { clearInterval(timer); timer = null; msg.textContent = 'Time is up!'; }
+}
+function start() {
+  const v = input.value;
+  if (!v) { msg.textContent = 'Pick a date and time first.'; return; }
+  target = new Date(v).getTime();
+  localStorage.setItem('countdownTarget', v);
+  clearInterval(timer);
+  paused = false;
+  msg.textContent = target <= Date.now() ? 'Time is up!' : '';
+  controls.classList.add('hidden');
+  tick();
+  if (target > Date.now()) timer = setInterval(tick, 250);
+}
+document.getElementById('start').onclick = start;
+document.getElementById('reset').onclick = () => {
+  clearInterval(timer); timer = null; target = null; paused = false; input.value = '';
+  localStorage.removeItem('countdownTarget'); msg.textContent = ''; render(0); controls.classList.remove('hidden');
+};
+
+render(0);
+const saved = localStorage.getItem('countdownTarget');
+if (saved) { input.value = saved; start(); }
+else {
+  const def = new Date(Date.now() + 86400000 * 1);
+  def.setMinutes(def.getMinutes() - def.getTimezoneOffset());
+  input.value = def.toISOString().slice(0, 19);
+}
+</script>
+</body>
+</html>
