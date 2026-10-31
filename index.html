@@ -7,15 +7,16 @@
 <style>
   html, body { margin: 0; height: 100%; background: #000; color: #f22; font-family: monospace; }
   body { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2.5vw; }
+  h1 { margin: 0; color: #ff1a1a; font-size: clamp(1.5rem, 3vw, 2.5rem); letter-spacing: .3em; }
   #display { display: flex; align-items: center; gap: 1.2vw; }
   .group { display: flex; gap: .6vw; }
   .digit { width: 7vw; height: 12vw; }
-  .digit .seg { fill: #2a0000; }
+  .digit .seg { fill: #160000; }
   .digit .seg.on { fill: #ff1a1a; filter: drop-shadow(0 0 2px rgba(255,0,0,.5)); }
   .sep { width: 2vw; height: 12vw; }
   .sep line { stroke: #ff1a1a; stroke-width: 14;   stroke-linecap: round; filter: drop-shadow(0 0 2px rgba(255,0,0,.5)); }
     .col { display: flex; flex-direction: column; align-items: center; gap: 1vw; }
-    .label { font-size: 1.4vw; letter-spacing: .3em; margin-right: -.3em; color: #800; }
+    .label { font-size: 2.2vw; font-weight: 800; letter-spacing: .3em; margin-right: -.3em; color: #800; }
     #display { align-items: flex-start; }
     .sep { margin-top: 0; }
     #controls.hidden { display: none; }
@@ -27,6 +28,7 @@
 </style>
 </head>
 <body>
+  <h1>Countdown</h1>
   <div id="display"></div>
   <div id="controls">
     <input type="datetime-local" id="target" step="1">
